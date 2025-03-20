@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REST Client</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-3 sidebar">
+        <div class="p-3">
+          <h3 class="mb-4">REST Client</h3>
+          
+          <!-- OpenAPI Spec Input -->
+          <div class="mb-4">
+            <h5>OpenAPI Specification</h5>
+            <div class="input-group mb-3">
+              <input type="text" id="openapi-url" class="form-control" placeholder="Enter OpenAPI URL">
+              <button class="btn btn-primary" id="parse-openapi-btn">Parse</button>
+            </div>
+          </div>
+          
+          <!-- Endpoints List -->
+          <div class="mb-4">
+            <h5>Endpoints</h5>
+            <div id="endpoints-list" class="list-group endpoints-list">
+              <div class="text-muted small p-2">No endpoints available. Parse an OpenAPI specification first.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="col-md-9 main-content">
+        <div class="p-3">
+          <h4 id="endpoint-title">REST Client</h4>
+          
+          <!-- Request Form -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="request-tab" data-bs-toggle="tab" data-bs-target="#request-tab-pane" type="button" role="tab" aria-controls="request-tab-pane" aria-selected="true">Request</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="auth-tab" data-bs-toggle="tab" data-bs-target="#auth-tab-pane" type="button" role="tab" aria-controls="auth-tab-pane" aria-selected="false">Auth</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="headers-tab" data-bs-toggle="tab" data-bs-target="#headers-tab-pane" type="button" role="tab" aria-controls="headers-tab-pane" aria-selected="false">Headers</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="params-tab" data-bs-toggle="tab" data-bs-target="#params-tab-pane" type="button" role="tab" aria-controls="params-tab-pane" aria-selected="false">Params</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="body-tab" data-bs-toggle="tab" data-bs-target="#body-tab-pane" type="button" role="tab" aria-controls="body-tab-pane" aria-selected="false">Body</button>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              <div class="tab-content">
+                <!-- Request Tab -->
+                <div class="tab-pane fade show active" id="request-tab-pane" role="tabpanel" aria-labelledby="request-tab" tabindex="0">
+                  <div class="mb-3">
+                    <div class="input-group">
+                      <select class="form-select method-select" id="request-method" style="max-width: 120px;">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="OPTIONS">OPTIONS</option>
+                        <option value="HEAD">HEAD</option>
+                      </select>
+                      <input type="text" class="form-control" id="request-url" placeholder="Enter request URL">
+                      <button class="btn btn-primary" id="send-request-btn">Send</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Auth Tab -->
+                <div class="tab-pane fade" id="auth-tab-pane" role="tabpanel" aria-labelledby="auth-tab" tabindex="0">
+                  <div class="mb-3">
+                    <label for="auth-type" class="form-label">Authentication Type</label>
+                    <select class="form-select" id="auth-type">
+                      <option value="none">No Auth</option>
+                      <option value="basic">Basic Auth</option>
+                      <option value="bearer">Bearer Token</option>
+                      <option value="apiKey">API Key</option>
+                      <option value="oauth2">OAuth 2.0</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Auth Type Forms -->
+                  <div id="auth-forms">
+                    <!-- Basic Auth Form -->
+                    <div id="basic-auth-form" class="auth-form" style="display: none;">
+                      <div class="mb-3">
+                        <label for="basic-username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="basic-username">
+                      </div>
+                      <div class="mb-3">
+                        <label for="basic-password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="basic-password">
+                      </div>
+                    </div>
+                    
+                    <!-- Bearer Token Form -->
+                    <div id="bearer-token-form" class="auth-form" style="display: none;">
+                      <div class="mb-3">
+                        <label for="bearer-token" class="form-label">Token</label>
+                        <input type="text" class="form-control" id="bearer-token">
+                      </div>
+                    </div>
+                    
+                    <!-- API Key Form -->
+                    <div id="api-key-form" class="auth-form" style="display: none;">
+                      <div class="mb-3">
+                        <label for="api-key-name" class="form-label">Key Name</label>
+                        <input type="text" class="form-control" id="api-key-name">
+                      </div>
+                      <div class="mb-3">
+                        <label for="api-key-value" class="form-label">Key Value</label>
+                        <input type="text" class="form-control" id="api-key-value">
+                      </div>
+                      <div class="mb-3">
+                        <label for="api-key-location" class="form-label">Add to</label>
+                        <select class="form-select" id="api-key-location">
+                          <option value="header">Header</option>
+                          <option value="query">Query Parameter</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <!-- OAuth2 Form -->
+                    <div id="oauth2-form" class="auth-form" style="display: none;">
+                      <div class="mb-3">
+                        <label for="oauth2-grant-type" class="form-label">Grant Type</label>
+                        <select class="form-select" id="oauth2-grant-type">
+                          <option value="client_credentials">Client Credentials</option>
+                          <!-- Add more grant types as needed -->
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="oauth2-token-url" class="form-label">Token URL</label>
+                        <input type="text" class="form-control" id="oauth2-token-url">
+                      </div>
+                      <div class="mb-3">
+                        <label for="oauth2-client-id" class="form-label">Client ID</label>
+                        <input type="text" class="form-control" id="oauth2-client-id">
+                      </div>
+                      <div class="mb-3">
+                        <label for="oauth2-client-secret" class="form-label">Client Secret</label>
+                        <input type="password" class="form-control" id="oauth2-client-secret">
+                      </div>
+                      <div class="mb-3">
+                        <label for="oauth2-scope" class="form-label">Scope (optional)</label>
+                        <input type="text" class="form-control" id="oauth2-scope">
+                      </div>
+                      <button class="btn btn-secondary" id="get-oauth2-token-btn">Get Token</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Headers Tab -->
+                <div class="tab-pane fade" id="headers-tab-pane" role="tabpanel" aria-labelledby="headers-tab" tabindex="0">
+                  <button class="btn btn-sm btn-outline-primary mb-3" id="add-header-btn">Add Header</button>
+                  <div id="headers-container">
+                    <!-- Headers will be added here dynamically -->
+                  </div>
+                </div>
+                
+                <!-- Params Tab -->
+                <div class="tab-pane fade" id="params-tab-pane" role="tabpanel" aria-labelledby="params-tab" tabindex="0">
+                  <button class="btn btn-sm btn-outline-primary mb-3" id="add-param-btn">Add Parameter</button>
+                  <div id="params-container">
+                    <!-- Parameters will be added here dynamically -->
+                  </div>
+                </div>
+                
+                <!-- Body Tab -->
+                <div class="tab-pane fade" id="body-tab-pane" role="tabpanel" aria-labelledby="body-tab" tabindex="0">
+                  <div class="mb-3">
+                    <label for="body-content-type" class="form-label">Content Type</label>
+                    <select class="form-select" id="body-content-type">
+                      <option value="application/json">JSON</option>
+                      <option value="application/xml">XML</option>
+                      <option value="text/plain">Text</option>
+                      <option value="application/x-www-form-urlencoded">Form URL Encoded</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label for="body-editor" class="form-label">Request Body</label>
+                    <textarea class="form-control" id="body-editor" rows="10"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Response Section -->
+          <div class="card">
+            <div class="card-header">
+              <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="response-body-tab" data-bs-toggle="tab" data-bs-target="#response-body-tab-pane" type="button" role="tab" aria-controls="response-body-tab-pane" aria-selected="true">Body</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="response-headers-tab" data-bs-toggle="tab" data-bs-target="#response-headers-tab-pane" type="button" role="tab" aria-controls="response-headers-tab-pane" aria-selected="false">Headers</button>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              <div id="response-status">
+                <span class="badge bg-secondary">No response yet</span>
+              </div>
+              <div class="tab-content mt-3">
+                <!-- Response Body Tab -->
+                <div class="tab-pane fade show active" id="response-body-tab-pane" role="tabpanel" aria-labelledby="response-body-tab" tabindex="0">
+                  <pre id="response-body" class="response-container"></pre>
+                </div>
+                
+                <!-- Response Headers Tab -->
+                <div class="tab-pane fade" id="response-headers-tab-pane" role="tabpanel" aria-labelledby="response-headers-tab" tabindex="0">
+                  <pre id="response-headers" class="response-container"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html> 
