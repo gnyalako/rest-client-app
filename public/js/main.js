@@ -19,11 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const addParamBtn = document.getElementById('add-param-btn');
   const paramsContainer = document.getElementById('params-container');
   const getOAuth2TokenBtn = document.getElementById('get-oauth2-token-btn');
+  const oauth2TokenStatus = document.getElementById('oauth2-token-status');
+  const oauth2TokenDetails = document.getElementById('oauth2-token-details');
+  const oauth2TokenInfo = document.getElementById('oauth2-token-info');
+  const useOAuth2TokenBtn = document.getElementById('use-oauth2-token-btn');
 
   // State
   let currentOpenApiSpec = null;
   let currentEndpoint = null;
   let currentParameters = {};
+  let currentOAuth2Token = null;
 
   // Initialize
   init();
@@ -36,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
     addHeaderBtn.addEventListener('click', addHeaderField);
     addParamBtn.addEventListener('click', addParamField);
     getOAuth2TokenBtn.addEventListener('click', getOAuth2Token);
+    useOAuth2TokenBtn.addEventListener('click', useOAuth2Token);
+    
+    // Initialize the auth form display based on current selection
+    updateAuthForm();
     
     // Populate headers and params with initial fields
     addHeaderField();
@@ -318,9 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
         
       case 'oauth2':
-        const oauth2Token = document.getElementById('bearer-token').value.trim();
-        if (oauth2Token) {
-          return { type: 'oauth2', token: oauth2Token };
+        // If we have a current OAuth2 token, use it as a bearer token
+        if (currentOAuth2Token && currentOAuth2Token.access_token) {
+          return { type: 'oauth2', token: currentOAuth2Token.access_token };
         }
         break;
     }
@@ -338,7 +347,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Show the selected auth form
     if (authType !== 'none') {
-      const selectedForm = document.getElementById(`${authType}-auth-form`);
+      // Check both possible ID formats (with and without "-auth")
+      let selectedForm = document.getElementById(`${authType}-auth-form`);
+      if (!selectedForm) {
+        selectedForm = document.getElementById(`${authType}-form`);
+      }
+      
       if (selectedForm) {
         selectedForm.style.display = 'block';
       }
@@ -394,6 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     try {
+      // Update UI to show loading state
+      getOAuth2TokenBtn.disabled = true;
+      oauth2TokenStatus.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+      oauth2TokenDetails.style.display = 'none';
+      
       const response = await fetch('/api/auth/oauth2/token', {
         method: 'POST',
         headers: {
@@ -411,22 +430,81 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const data = await response.json();
       
+      // Reset button state
+      getOAuth2TokenBtn.disabled = false;
+      
       if (response.ok && data.token) {
-        // Update the bearer token input
-        document.getElementById('bearer-token').value = data.token.access_token;
+        // Store the token
+        currentOAuth2Token = data.token;
         
-        // Switch to bearer token auth type
-        authTypeSelect.value = 'bearer';
-        updateAuthForm();
+        // Update status
+        oauth2TokenStatus.innerHTML = '<span class="badge bg-success">Success</span>';
         
-        alert('OAuth2 token generated successfully!');
+        // Display token details
+        let tokenInfoHTML = '';
+        
+        // Format expiration time
+        const expiresAt = new Date();
+        expiresAt.setSeconds(expiresAt.getSeconds() + data.token.expires_in);
+        
+        tokenInfoHTML += `<div><strong>Access Token:</strong> <span class="text-truncate d-inline-block" style="max-width: 300px;">${data.token.access_token}</span></div>`;
+        tokenInfoHTML += `<div><strong>Token Type:</strong> ${data.token.token_type}</div>`;
+        tokenInfoHTML += `<div><strong>Expires In:</strong> ${data.token.expires_in} seconds (${expiresAt.toLocaleTimeString()})</div>`;
+        
+        if (data.token.scope) {
+          tokenInfoHTML += `<div><strong>Scope:</strong> ${data.token.scope}</div>`;
+        }
+        
+        oauth2TokenInfo.innerHTML = tokenInfoHTML;
+        oauth2TokenDetails.style.display = 'block';
       } else {
+        // Update status for error
+        oauth2TokenStatus.innerHTML = '<span class="badge bg-danger">Failed</span>';
+        oauth2TokenDetails.style.display = 'none';
         alert(`Error: ${data.error || 'Failed to generate token'}`);
       }
     } catch (error) {
       console.error('Error getting OAuth2 token:', error);
+      getOAuth2TokenBtn.disabled = false;
+      oauth2TokenStatus.innerHTML = '<span class="badge bg-danger">Error</span>';
+      oauth2TokenDetails.style.display = 'none';
       alert(`Error: ${error.message}`);
     }
+  }
+  
+  function useOAuth2Token() {
+    if (!currentOAuth2Token || !currentOAuth2Token.access_token) {
+      alert('No valid OAuth2 token available');
+      return;
+    }
+    
+    // Set the bearer token
+    document.getElementById('bearer-token').value = currentOAuth2Token.access_token;
+    
+    // Switch to bearer token auth type
+    authTypeSelect.value = 'bearer';
+    updateAuthForm();
+    
+    // Add Authorization header
+    let authHeaderExists = false;
+    
+    // Check if Authorization header already exists
+    const headerElements = headersContainer.querySelectorAll('.key-value-pair');
+    headerElements.forEach(element => {
+      const key = element.querySelector('.header-key').value.trim();
+      if (key.toLowerCase() === 'authorization') {
+        // Update existing Authorization header
+        element.querySelector('.header-value').value = `Bearer ${currentOAuth2Token.access_token}`;
+        authHeaderExists = true;
+      }
+    });
+    
+    // Add new Authorization header if it doesn't exist
+    if (!authHeaderExists) {
+      addHeaderField('Authorization', `Bearer ${currentOAuth2Token.access_token}`);
+    }
+    
+    alert('OAuth2 token added to headers and authentication');
   }
 
   function collectParameterValues() {

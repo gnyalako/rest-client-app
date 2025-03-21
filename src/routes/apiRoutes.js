@@ -133,6 +133,26 @@ router.post('/auth/oauth2/token', async (req, res) => {
     
     if (grantType === 'client_credentials') {
       result = await authService.getClientCredentialsToken(client, { scope });
+      
+      // Add token obtained timestamp
+      result.obtained_at = new Date().toISOString();
+      
+      // If we have a token and it doesn't have an expires_in, set a default
+      if (result.token && !result.token.expires_in) {
+        result.token.expires_in = 3600; // Default to 1 hour
+      }
+      
+      // Add decoded token information if it's a JWT
+      if (result.token && result.token.access_token) {
+        try {
+          const decodedToken = authService.verifyJwtToken(result.token.access_token);
+          if (decodedToken) {
+            result.decoded_token = decodedToken;
+          }
+        } catch (decodeError) {
+          console.log('Token is not a JWT or could not be decoded:', decodeError.message);
+        }
+      }
     } else {
       return res.status(400).json({ error: `Unsupported grant type: ${grantType}` });
     }
